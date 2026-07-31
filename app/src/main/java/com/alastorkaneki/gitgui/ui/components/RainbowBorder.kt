@@ -12,6 +12,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
@@ -62,7 +63,7 @@ fun Modifier.animatedRainbowBorder(
         drawRoundRect(
             brush = brush,
             topLeft = Offset(stroke / 2f, stroke / 2f),
-            size = size.copy(width = size.width - stroke, height = size.height - stroke),
+            size = Size(size.width - stroke, size.height - stroke),
             cornerRadius = CornerRadius(cornerRadius.toPx()),
             style = Stroke(stroke)
         )
