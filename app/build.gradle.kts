@@ -10,7 +10,7 @@ val githubClientId = providers.gradleProperty("GITHUB_CLIENT_ID")
 
 android {
     namespace = "com.alastorkaneki.gitgui"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.alastorkaneki.gitgui"
