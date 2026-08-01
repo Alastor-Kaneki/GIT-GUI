@@ -3,7 +3,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <application
-        android:name=".GitGuiApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="GIT GUI"
@@ -13,11 +12,21 @@
         <activity
             android:name=".MainActivity"
             android:exported="false"
+            android:process=":ui"
             android:screenOrientation="unspecified" />
         <activity
-            android:name=".StartupActivity"
+            android:name=".UiBootstrapActivity"
+            android:exported="false"
+            android:hardwareAccelerated="false"
+            android:process=":ui"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
+        <activity
+            android:name=".DiagnosticActivity"
             android:exported="true"
-            android:screenOrientation="unspecified">
+            android:hardwareAccelerated="false"
+            android:process=":diagnostic"
+            android:screenOrientation="unspecified"
+            android:theme="@android:style/Theme.Material.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
