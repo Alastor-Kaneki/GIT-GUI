@@ -10,9 +10,9 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppPreferences(application)
-    private val git = GitService(application)
-    private val extendedGit = ExtendedGitCommands(application)
-    private val github = GitHubService()
+    private val git by lazy(LazyThreadSafetyMode.NONE) { GitService(application) }
+    private val extendedGit by lazy(LazyThreadSafetyMode.NONE) { ExtendedGitCommands(application) }
+    private val github by lazy(LazyThreadSafetyMode.NONE) { GitHubService() }
     private val mutableState = MutableStateFlow(
         AppState(
             gitName = preferences.gitName,
