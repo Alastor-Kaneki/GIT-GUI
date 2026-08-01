@@ -16,8 +16,8 @@ android {
         applicationId = "com.alastorkaneki.gitgui"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.2"
+        versionCode = 4
+        versionName = "0.2.3"
         buildConfigField("String", "GITHUB_CLIENT_ID", "\"${githubClientId.get()}\"")
     }
 
