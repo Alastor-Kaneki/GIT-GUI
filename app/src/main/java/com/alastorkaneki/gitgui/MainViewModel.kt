@@ -14,7 +14,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val github = GitHubService()
     private val mutableState = MutableStateFlow(
         AppState(
-            clientId = preferences.clientId,
             gitName = preferences.gitName,
             gitEmail = preferences.gitEmail,
             rainbowEnabled = preferences.rainbowEnabled,
@@ -112,15 +111,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshInternal(requireRepository())
     }
 
-    fun saveSettings(clientId: String, name: String, email: String, enabled: Boolean, reverse: Boolean, speed: Float) {
-        preferences.clientId = clientId
+    fun saveSettings(name: String, email: String, enabled: Boolean, reverse: Boolean, speed: Float) {
         preferences.gitName = name
         preferences.gitEmail = email
         preferences.rainbowEnabled = enabled
         preferences.rainbowReverse = reverse
         preferences.rainbowSpeed = speed
         mutableState.value = mutableState.value.copy(
-            clientId = clientId.trim(),
             gitName = name.trim(),
             gitEmail = email.trim(),
             rainbowEnabled = enabled,
@@ -134,10 +131,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(busy = true, message = null)
             runCatching {
-                val clientId = mutableState.value.clientId
-                check(clientId.isNotBlank()) { "Paste a GitHub OAuth App client ID in Settings first." }
+                val clientId = BuildConfig.GITHUB_CLIENT_ID
+                check(clientId.isNotBlank() && clientId != CLIENT_ID_PLACEHOLDER) { "GitHub sign-in is not configured in this build." }
                 val code = github.requestDeviceCode(clientId)
-                mutableState.value = mutableState.value.copy(deviceCode = code, busy = false, message = "Enter ${code.userCode} on GitHub.")
+                mutableState.value = mutableState.value.copy(deviceCode = code, busy = false, message = "Authorize ${code.userCode} on GitHub.")
                 val token = github.pollToken(clientId, code)
                 preferences.saveToken(token)
                 val profile = github.profile(token)
@@ -147,13 +144,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 mutableState.value = mutableState.value.copy(deviceCode = null, busy = false, message = error.message ?: error.javaClass.simpleName)
             }
         }
-    }
-
-    fun connectWithToken(token: String) = launchAction {
-        check(token.isNotBlank()) { "Token is required." }
-        val profile = github.profile(token.trim())
-        preferences.saveToken(token.trim())
-        mutableState.value = mutableState.value.copy(profile = profile, githubRepositories = github.repositories(token.trim()), message = "Connected as ${profile.login}.")
     }
 
     fun logout() {
@@ -188,5 +178,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             mutableState.value = mutableState.value.copy(busy = false)
         }
+    }
+
+    private companion object {
+        const val CLIENT_ID_PLACEHOLDER = "GITHUBCLIENTID000000"
     }
 }
