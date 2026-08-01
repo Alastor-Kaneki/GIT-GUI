@@ -13,6 +13,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_CLIENT_ID: ${{ secrets.GIT_GUI_OAUTH_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -26,7 +28,12 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+        run: |
+          if [ -n "$GITHUB_CLIENT_ID" ]; then
+            gradle :app:assembleDebug --stacktrace -PGITHUB_CLIENT_ID="$GITHUB_CLIENT_ID"
+          else
+            gradle :app:assembleDebug --stacktrace
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: GIT-GUI-debug

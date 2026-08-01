@@ -50,7 +50,6 @@ data class AppState(
     val profile: GitHubProfile? = null,
     val githubRepositories: List<GitHubRepository> = emptyList(),
     val deviceCode: DeviceCode? = null,
-    val clientId: String = "",
     val gitName: String = "Alastor Kaneki",
     val gitEmail: String = "",
     val rainbowEnabled: Boolean = true,
