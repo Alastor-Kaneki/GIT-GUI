@@ -13,11 +13,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.alastorkaneki.gitgui"
+        applicationId = "com.alastorkaneki.gitgui.diagnostic"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.2.4"
+        versionCode = 6
+        versionName = "0.2.5-diagnostic"
         buildConfigField("String", "GITHUB_CLIENT_ID", "\"${githubClientId.get()}\"")
     }
 
