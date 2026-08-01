@@ -14,10 +14,6 @@ class AppPreferences(context: Context) {
     private val preferences = context.getSharedPreferences("git_gui_preferences", Context.MODE_PRIVATE)
     private val alias = "git_gui_token_key"
 
-    var clientId: String
-        get() = preferences.getString("client_id", "") ?: ""
-        set(value) = preferences.edit().putString("client_id", value.trim()).apply()
-
     var gitName: String
         get() = preferences.getString("git_name", "Alastor Kaneki") ?: "Alastor Kaneki"
         set(value) = preferences.edit().putString("git_name", value.trim()).apply()
