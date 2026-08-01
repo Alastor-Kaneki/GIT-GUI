@@ -319,7 +319,7 @@ private fun HistoryScreen(state: AppState) {
 @Composable
 private fun CommandsScreen(state: AppState, model: MainViewModel) {
     var command by remember { mutableStateOf("git status") }
-    val examples = listOf("git status", "git branch -a", "git log", "git diff", "git stash list", "git remote -v", "git rev-parse HEAD")
+    val examples = listOf("git help", "git status", "git branch -a", "git log", "git diff", "git stash list", "git remote -v")
     Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Command center", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
         Text(state.selectedRepository?.name ?: "Select a repository first", color = MaterialTheme.colorScheme.secondary)
@@ -343,7 +343,7 @@ private fun CommandsScreen(state: AppState, model: MainViewModel) {
         Surface(color = Color(0xFF070707), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().rainbowBorder(state.rainbowEnabled, state.rainbowSpeed, state.rainbowReverse)) {
             Text(state.commandOutput, modifier = Modifier.padding(14.dp), fontFamily = FontFamily.Monospace, color = Color(0xFFD5FFD5))
         }
-        Text("Supported: status, add, reset, restore, commit, log, diff, branch, checkout, switch, fetch, pull, push, merge, rebase, cherry-pick, revert, stash, tag, clean, remote, config, rev-parse, show.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Run git help for every embedded command. Desktop-only external tools and features unavailable in JGit are excluded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
