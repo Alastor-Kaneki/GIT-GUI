@@ -17,20 +17,32 @@ import android.widget.Toast
 
 class StartupActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        DownloadLog.append(this, "StartupActivity.onCreate entered")
         super.onCreate(savedInstanceState)
+        DownloadLog.append(this, "StartupActivity super.onCreate completed")
         CrashStore.install(applicationContext)
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
         val report = CrashStore.read(this)
-        if (report == null) launchMain() else showRecovery(report)
+        if (report == null) {
+            DownloadLog.append(this, "No stored Java crash report; launching MainActivity")
+            launchMain()
+        } else {
+            DownloadLog.append(this, "Stored Java crash report found; showing recovery screen")
+            showRecovery(report)
+        }
     }
 
     private fun launchMain() {
+        DownloadLog.append(this, "Calling startActivity(MainActivity)")
         startActivity(Intent(this, MainActivity::class.java))
+        DownloadLog.append(this, "startActivity(MainActivity) returned")
         finish()
+        DownloadLog.append(this, "StartupActivity.finish called")
     }
 
     private fun retry(disableAnimations: Boolean) {
+        DownloadLog.append(this, "Retry requested; disableAnimations=$disableAnimations")
         if (disableAnimations) {
             getSharedPreferences("git_gui_preferences", Context.MODE_PRIVATE)
                 .edit()
@@ -57,7 +69,7 @@ class StartupActivity : Activity() {
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         root.addView(TextView(this).apply {
-            text = "The crash was captured instead of closing silently. Copy the report, or retry with animated outlines disabled."
+            text = "A persistent diagnostic log is also being written to Downloads/${DownloadLog.FILE_NAME}."
             textSize = 15f
             setTextColor(Color.LTGRAY)
             setPadding(0, 0, 0, dp(14))
@@ -98,6 +110,7 @@ class StartupActivity : Activity() {
         }, buttonLayout())
 
         setContentView(root)
+        DownloadLog.append(this, "Recovery screen content view installed")
     }
 
     private fun buttonLayout() = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
