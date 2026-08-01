@@ -10,6 +10,10 @@
         android:theme="@style/Theme.GitGui">
         <activity
             android:name=".MainActivity"
+            android:exported="false"
+            android:screenOrientation="unspecified" />
+        <activity
+            android:name=".StartupActivity"
             android:exported="true"
             android:screenOrientation="unspecified">
             <intent-filter>
