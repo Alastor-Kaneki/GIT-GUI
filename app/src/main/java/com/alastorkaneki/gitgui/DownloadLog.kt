@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.Process
 import android.provider.MediaStore
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.text.SimpleDateFormat
@@ -223,14 +224,14 @@ object DownloadLog {
 
     private fun readLimited(input: InputStream, limit: Int): String {
         val buffer = ByteArray(8192)
-        val output = ArrayList<Byte>()
+        val output = ByteArrayOutputStream(minOf(limit, 32768))
         var remaining = limit
         while (remaining > 0) {
             val count = input.read(buffer, 0, minOf(buffer.size, remaining))
             if (count <= 0) break
-            repeat(count) { output.add(buffer[it]) }
+            output.write(buffer, 0, count)
             remaining -= count
         }
-        return output.toByteArray().toString(Charsets.UTF_8)
+        return output.toString(Charsets.UTF_8.name())
     }
 }
