@@ -27,6 +27,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Validate GitHub OAuth configuration
+        if: github.event_name != 'pull_request'
+        run: |
+          if [ -z "$GITHUB_CLIENT_ID" ]; then
+            echo "::error::Missing repository secret GIT_GUI_OAUTH_CLIENT_ID"
+            exit 1
+          fi
       - name: Build debug APK
         run: |
           if [ -n "$GITHUB_CLIENT_ID" ]; then
@@ -35,6 +42,7 @@ jobs:
             gradle :app:assembleDebug --stacktrace
           fi
       - uses: actions/upload-artifact@v4
+        if: env.GITHUB_CLIENT_ID != ''
         with:
           name: GIT-GUI-debug
           path: app/build/outputs/apk/debug/app-debug.apk
