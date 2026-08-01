@@ -1,6 +1,6 @@
 # GIT GUI
 
-A native Android GUI for Git with an AMOLED-only interface, smooth animated rainbow controls, local repository management, and direct GitHub account authorization.
+A native Android GUI for Git with an AMOLED-only interface, smooth animated rainbow controls, local repository management, direct GitHub account authorization, and an expanded embedded command engine.
 
 ## Current features
 
@@ -10,12 +10,14 @@ A native Android GUI for Git with an AMOLED-only interface, smooth animated rain
 - Fetch, pull, and push over HTTPS
 - One-tap GitHub Device Flow authorization with no in-app credential entry
 - GitHub repository browser and one-tap cloning
-- Command center for `status`, `add`, `reset`, `restore`, `commit`, `log`, `diff`, `branch`, `checkout`, `switch`, `fetch`, `pull`, `push`, `merge`, `rebase`, `cherry-pick`, `revert`, `stash`, `tag`, `clean`, `remote`, `config`, `rev-parse`, and `show`
+- Broad Git command coverage across workspace operations, history, branches, remotes, submodules, objects, refs, search, archives, and maintenance
 - AMOLED black Material 3 UI
 - Faster animated rainbow outlines with reversible direction
 - Animated rainbow text-field outlines and toggles
 - Git-inspired custom adaptive icon
 - GitHub Actions debug APK builds
+
+See [SUPPORTED_COMMANDS.md](SUPPORTED_COMMANDS.md) for the complete embedded command list and scope. Run `git help` in the app to view the categorized list directly in the command center.
 
 ## GitHub authorization builds
 
@@ -47,7 +49,7 @@ The included GitHub Actions workflow builds an APK and uploads it as the `GIT-GU
 
 ## Engine note
 
-The embedded engine uses Eclipse JGit, so it works without Termux or a separately installed Git executable. The command center implements the listed day-to-day Git commands. Low-level plumbing commands and commands that depend on external Git extensions are not yet available.
+The embedded engine uses Eclipse JGit, so it works without Termux or a separately installed Git executable. Commands that depend on native desktop executables, external helpers, Git LFS, or functionality absent from JGit are excluded rather than falsely reported as supported.
 
 ## License
 
