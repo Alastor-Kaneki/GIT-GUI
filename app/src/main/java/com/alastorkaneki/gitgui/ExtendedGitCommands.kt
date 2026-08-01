@@ -426,8 +426,8 @@ class ExtendedGitCommands(context: Context) {
         val update = git.repository.updateRef(name)
         if ("-d" in args) return update.delete().toString()
         val newValue = items.getOrNull(1) ?: error("New value is required.")
-        update.newObjectId = git.repository.resolve(newValue) ?: error("Unknown object $newValue.")
-        items.getOrNull(2)?.let { update.expectedOldObjectId = git.repository.resolve(it) ?: error("Unknown object $it.") }
+        update.setNewObjectId(git.repository.resolve(newValue) ?: error("Unknown object $newValue."))
+        items.getOrNull(2)?.let { update.setExpectedOldObjectId(git.repository.resolve(it) ?: error("Unknown object $it.")) }
         return update.update().toString()
     }
 
