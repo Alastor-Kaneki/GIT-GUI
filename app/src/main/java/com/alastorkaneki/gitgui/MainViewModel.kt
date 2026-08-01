@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = AppPreferences(application)
     private val git = GitService(application)
+    private val extendedGit = ExtendedGitCommands(application)
     private val github = GitHubService()
     private val mutableState = MutableStateFlow(
         AppState(
@@ -106,9 +107,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun execute(command: String) = launchAction {
-        val output = git.execute(requireRepository(), command, preferences.token(), mutableState.value.gitName, mutableState.value.gitEmail)
+        val repository = requireRepository()
+        val token = preferences.token()
+        val output = if (extendedGit.handles(command)) {
+            extendedGit.execute(repository, command, token)
+        } else {
+            git.execute(repository, command, token, mutableState.value.gitName, mutableState.value.gitEmail)
+        }
         mutableState.value = mutableState.value.copy(commandOutput = output)
-        refreshInternal(requireRepository())
+        refreshInternal(repository)
     }
 
     fun saveSettings(name: String, email: String, enabled: Boolean, reverse: Boolean, speed: Float) {
