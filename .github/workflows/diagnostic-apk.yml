@@ -3,6 +3,8 @@ name: Diagnostic APK
 on:
   push:
     branches: [fix/java-diagnostic-launcher]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
