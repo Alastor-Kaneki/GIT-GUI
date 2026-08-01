@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,10 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,16 +46,17 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,7 +68,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,7 +127,10 @@ private fun GitGuiApp(state: AppState, model: MainViewModel, openUrl: (String) -
             model.dismissMessage()
         }
     }
-    state.deviceCode?.let { code -> DeviceDialog(code, openUrl) }
+    state.deviceCode?.let { code ->
+        LaunchedEffect(code.deviceCode) { openUrl(code.verificationUri) }
+        DeviceDialog(code, openUrl)
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize().background(Color.Black),
         snackbarHost = { SnackbarHost(snackbar) },
@@ -163,7 +177,7 @@ private fun RepositoryScreen(state: AppState, model: MainViewModel) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text(state.profile?.let { "Connected as ${it.login}" } ?: "GitHub account", fontWeight = FontWeight.Bold)
-                        Text(if (state.profile == null) "Use device login or a personal token." else "${state.githubRepositories.size} remote repositories loaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (state.profile == null) "One-tap device authorization. Nothing to paste." else "${state.githubRepositories.size} remote repositories loaded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (state.profile == null) RainbowButton(state, "Connect", model::connectWithDeviceFlow) else TextButton(onClick = model::logout) { Text("Disconnect") }
                 }
@@ -173,8 +187,8 @@ private fun RepositoryScreen(state: AppState, model: MainViewModel) {
             RainbowCard(state) {
                 Text("Clone repository", fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(cloneUrl, { cloneUrl = it }, label = { Text("HTTPS clone URL") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(cloneName, { cloneName = it }, label = { Text("Local name (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                RainbowTextField(state, cloneUrl, { cloneUrl = it }, "HTTPS clone URL", Modifier.fillMaxWidth(), true)
+                RainbowTextField(state, cloneName, { cloneName = it }, "Local name (optional)", Modifier.fillMaxWidth(), true)
                 Spacer(Modifier.height(8.dp))
                 RainbowButton(state, "Clone") { model.clone(cloneUrl, cloneName) }
             }
@@ -182,7 +196,7 @@ private fun RepositoryScreen(state: AppState, model: MainViewModel) {
         item {
             RainbowCard(state) {
                 Text("Initialize repository", fontWeight = FontWeight.Bold)
-                OutlinedTextField(newName, { newName = it }, label = { Text("Repository name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                RainbowTextField(state, newName, { newName = it }, "Repository name", Modifier.fillMaxWidth(), true)
                 Spacer(Modifier.height(8.dp))
                 RainbowButton(state, "Create") { model.initialize(newName) }
             }
@@ -244,7 +258,7 @@ private fun ChangesScreen(state: AppState, model: MainViewModel) {
         }
         item {
             RainbowCard(state) {
-                OutlinedTextField(commitMessage, { commitMessage = it }, label = { Text("Commit message") }, modifier = Modifier.fillMaxWidth())
+                RainbowTextField(state, commitMessage, { commitMessage = it }, "Commit message", Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RainbowButton(state, "Stage all") { model.stage() }
@@ -310,7 +324,14 @@ private fun CommandsScreen(state: AppState, model: MainViewModel) {
         Text("Command center", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
         Text(state.selectedRepository?.name ?: "Select a repository first", color = MaterialTheme.colorScheme.secondary)
         RainbowCard(state) {
-            OutlinedTextField(command, { command = it }, label = { Text("Git command") }, modifier = Modifier.fillMaxWidth(), textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace))
+            RainbowTextField(
+                state = state,
+                value = command,
+                onValueChange = { command = it },
+                label = "Git command",
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace)
+            )
             Spacer(Modifier.height(8.dp))
             RainbowButton(state, "Run") { model.execute(command) }
         }
@@ -328,44 +349,42 @@ private fun CommandsScreen(state: AppState, model: MainViewModel) {
 
 @Composable
 private fun SettingsScreen(state: AppState, model: MainViewModel) {
-    var clientId by remember(state.clientId) { mutableStateOf(state.clientId) }
     var gitName by remember(state.gitName) { mutableStateOf(state.gitName) }
     var gitEmail by remember(state.gitEmail) { mutableStateOf(state.gitEmail) }
     var enabled by remember(state.rainbowEnabled) { mutableStateOf(state.rainbowEnabled) }
     var reverse by remember(state.rainbowReverse) { mutableStateOf(state.rainbowReverse) }
     var speed by remember(state.rainbowSpeed) { mutableStateOf(state.rainbowSpeed) }
-    var token by remember { mutableStateOf("") }
+    val previewState = state.copy(rainbowEnabled = enabled, rainbowReverse = reverse, rainbowSpeed = speed)
     Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-        RainbowCard(state) {
+        RainbowCard(previewState) {
             Text("GitHub", fontWeight = FontWeight.Bold)
-            OutlinedTextField(clientId, { clientId = it }, label = { Text("OAuth App client ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Text("Create an OAuth App, enable Device Flow, then paste its client ID. Never put a client secret in this app.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedTextField(token, { token = it }, label = { Text("Personal access token fallback") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RainbowButton(state, "Device login", model::connectWithDeviceFlow)
-                FilledTonalButton(onClick = { model.connectWithToken(token); token = "" }) { Text("Use token") }
-            }
+            Text(
+                state.profile?.let { "Connected as ${it.login}." } ?: "GitHub authorization is built into this app. No Client ID or token needs to be pasted.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(4.dp))
+            if (state.profile == null) RainbowButton(previewState, "Connect GitHub", model::connectWithDeviceFlow)
+            else FilledTonalButton(onClick = model::logout) { Text("Disconnect GitHub") }
         }
-        RainbowCard(state) {
+        RainbowCard(previewState) {
             Text("Commit identity", fontWeight = FontWeight.Bold)
-            OutlinedTextField(gitName, { gitName = it }, label = { Text("User name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(gitEmail, { gitEmail = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            RainbowTextField(previewState, gitName, { gitName = it }, "User name", Modifier.fillMaxWidth(), true)
+            RainbowTextField(previewState, gitEmail, { gitEmail = it }, "Email", Modifier.fillMaxWidth(), true)
         }
-        RainbowCard(state) {
+        RainbowCard(previewState) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Animated rainbow outlines")
-                Switch(enabled, { enabled = it })
+                RainbowSwitch(previewState, enabled) { enabled = it }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Reverse direction")
-                Switch(reverse, { reverse = it })
+                RainbowSwitch(previewState, reverse) { reverse = it }
             }
             Text("Speed ${"%.2f".format(speed)}×")
             Slider(speed, { speed = it }, valueRange = 0.25f..3f)
         }
-        RainbowButton(state, "Save settings") { model.saveSettings(clientId, gitName, gitEmail, enabled, reverse, speed) }
+        RainbowButton(previewState, "Save settings") { model.saveSettings(gitName, gitEmail, enabled, reverse, speed) }
         if (state.selectedRepository != null) {
             Button(onClick = model::deleteSelected, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                 Icon(Icons.Default.Delete, null)
@@ -383,12 +402,12 @@ private fun DeviceDialog(code: DeviceCode, openUrl: (String) -> Unit) {
         title = { Text("Connect GitHub") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Enter this code:")
+                Text("GitHub opened automatically. Enter this code:")
                 Text(code.userCode, style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black)
-                Text("The app is polling securely and will finish automatically after authorization.")
+                Text("The app will finish connecting automatically after authorization.")
             }
         },
-        confirmButton = { Button(onClick = { openUrl(code.verificationUri) }) { Text("Open GitHub") } }
+        confirmButton = { Button(onClick = { openUrl(code.verificationUri) }) { Text("Open GitHub again") } }
     )
 }
 
@@ -421,4 +440,59 @@ private fun RainbowButton(state: AppState, text: String, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF111111)),
         shape = RoundedCornerShape(14.dp)
     ) { Text(text) }
+}
+
+@Composable
+private fun RainbowTextField(
+    state: AppState,
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = false,
+    textStyle: TextStyle? = null
+) {
+    val shape = RoundedCornerShape(14.dp)
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = modifier.rainbowBorder(state.rainbowEnabled, state.rainbowSpeed, state.rainbowReverse, 14.dp, 1.8.dp),
+        singleLine = singleLine,
+        shape = shape,
+        textStyle = textStyle ?: LocalTextStyle.current,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = if (state.rainbowEnabled) Color.Transparent else MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = if (state.rainbowEnabled) Color.Transparent else MaterialTheme.colorScheme.outline,
+            disabledBorderColor = Color.Transparent,
+            errorBorderColor = MaterialTheme.colorScheme.error,
+            focusedContainerColor = Color(0xFF050505),
+            unfocusedContainerColor = Color(0xFF050505)
+        )
+    )
+}
+
+@Composable
+private fun RainbowSwitch(state: AppState, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val centerX by animateDpAsState(if (checked) 40.dp else 16.dp, label = "rainbow-switch-thumb")
+    val angle = rememberRainbowAngle(state.rainbowSpeed, state.rainbowReverse)
+    val fallbackBrush: Brush = SolidColor(if (checked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline)
+    Canvas(
+        Modifier
+            .size(56.dp, 32.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+    ) {
+        val brush = if (state.rainbowEnabled) rainbowBrush(size, angle) else fallbackBrush
+        val radius = size.height / 2f
+        drawRoundRect(brush = brush, cornerRadius = CornerRadius(radius, radius), alpha = if (checked) 0.5f else 0.24f)
+        val inset = 2.dp.toPx()
+        drawRoundRect(
+            color = Color.Black.copy(alpha = 0.68f),
+            topLeft = Offset(inset, inset),
+            size = Size(size.width - inset * 2f, size.height - inset * 2f),
+            cornerRadius = CornerRadius(radius - inset, radius - inset)
+        )
+        drawRoundRect(brush = brush, cornerRadius = CornerRadius(radius, radius), style = Stroke(2.dp.toPx()))
+        drawCircle(brush = brush, radius = 10.dp.toPx(), center = Offset(centerX.toPx(), size.height / 2f))
+    }
 }
