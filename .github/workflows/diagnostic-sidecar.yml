@@ -3,6 +3,8 @@ name: Diagnostic Sidecar APK
 on:
   push:
     branches: [fix/diagnostic-sidecar-package]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
