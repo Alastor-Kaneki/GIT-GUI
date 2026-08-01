@@ -18,45 +18,36 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
-      - name: Install SDK and emulator image
-        run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "system-images;android-35;google_apis;x86_64"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Install build SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Build APK
         run: gradle :app:assembleDebug --stacktrace
-      - name: Create emulator
-        run: |
-          echo no | avdmanager create avd -n gitgui-smoke -k "system-images;android-35;google_apis;x86_64" --force
-      - name: Launch emulator
-        run: |
-          nohup emulator -avd gitgui-smoke -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -accel on > emulator.log 2>&1 &
-          adb wait-for-device
-          for i in $(seq 1 180); do
-            if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; then
-              break
-            fi
-            sleep 2
-          done
-          adb shell input keyevent 82 || true
-      - name: Install and launch app
-        run: |
-          adb install -r app/build/outputs/apk/debug/app-debug.apk
-          adb logcat -c
-          adb shell am start -W -n com.alastorkaneki.gitgui/.MainActivity || true
-          sleep 10
-          adb shell pidof com.alastorkaneki.gitgui > app-pid.txt || true
-          adb logcat -d -v threadtime > runtime-log.txt
-          cat app-pid.txt
-          grep -n -A 40 -B 10 -E "FATAL EXCEPTION|AndroidRuntime|Process: com.alastorkaneki.gitgui" runtime-log.txt || true
-          test -s app-pid.txt
+      - name: Launch on Android 15 and capture logcat
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n com.alastorkaneki.gitgui/.MainActivity || true
+            sleep 10
+            adb shell pidof com.alastorkaneki.gitgui > app-pid.txt || true
+            adb logcat -d -v threadtime > runtime-log.txt
+            cat app-pid.txt
+            grep -n -A 60 -B 15 -E "FATAL EXCEPTION|AndroidRuntime|Process: com.alastorkaneki.gitgui" runtime-log.txt || true
+            test -s app-pid.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: runtime-smoke-logs
           path: |
             runtime-log.txt
-            emulator.log
             app-pid.txt
