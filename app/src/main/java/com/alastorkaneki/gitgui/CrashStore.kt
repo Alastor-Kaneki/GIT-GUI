@@ -29,14 +29,21 @@ object CrashStore {
         val writer = StringWriter()
         error.printStackTrace(PrintWriter(writer))
         val report = buildString {
-            appendLine("GIT GUI startup crash")
+            appendLine("GIT GUI uncaught crash")
             appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-            appendLine("Thread: ${thread.name}")
+            appendLine("Thread: ${thread.name} (${thread.id})")
+            appendLine("Exception: ${error.javaClass.name}: ${error.message.orEmpty()}")
             appendLine()
             append(writer.toString())
         }
-        runCatching { context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE).bufferedWriter().use { it.write(report) } }
+        runCatching {
+            context.openFileOutput(FILE_NAME, Context.MODE_PRIVATE).bufferedWriter().use {
+                it.write(report)
+                it.flush()
+            }
+        }
+        DownloadLog.appendBlock(context, "UNCAUGHT EXCEPTION", report)
         return report
     }
 
