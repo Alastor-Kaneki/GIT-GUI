@@ -1,0 +1,38 @@
+import java.util.Base64
+import java.util.zip.ZipInputStream
+
+def chunks = settingsDir.listFiles().findAll { it.name.startsWith('payload.part') }.sort { it.name }
+def b64 = chunks.collect { it.text }.join('').replaceAll('\\s','')
+def zipBytes = Base64.decoder.decode(b64)
+def zis = new ZipInputStream(new ByteArrayInputStream(zipBytes))
+def entry
+while ((entry = zis.nextEntry) != null) {
+    def out = new File(settingsDir, entry.name)
+    def rootPath = settingsDir.canonicalPath + File.separator
+    if (!out.canonicalPath.startsWith(rootPath)) throw new GradleException('Unsafe payload path: ' + entry.name)
+    if (entry.directory) {
+        out.mkdirs()
+    } else {
+        out.parentFile.mkdirs()
+        out.withOutputStream { os -> zis.transferTo(os) }
+    }
+    zis.closeEntry()
+}
+zis.close()
+
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = 'AlastorProjects'
+include ':app'
